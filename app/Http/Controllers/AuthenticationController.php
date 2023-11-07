@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Xin_user;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -27,7 +26,14 @@ class AuthenticationController extends Controller
             ]);
         }
 
+        $request["password"] = Hash::make($request->password);
+        $request["last_login_date"] = now();
+        $request["last_login_ip"] = "232323";
+        $request["is_logged_in"] = "1";
+        $request["is_active"] = "1";
 
+        $login = Xin_user::where('email', $request->email)->get();
+        $login->first()->fill($request->all())->save();
         return $user->createToken("user login")->plainTextToken;
     }
 
@@ -37,13 +43,11 @@ class AuthenticationController extends Controller
             'first_name' => 'required',
             'last_name' => 'required',
             'company_name' => 'required',
-            // 'company_logo' => 'required',
             'user_type' => 'required',
             'email' => 'required|email|unique:xin_users',
             'username' => 'required|unique:xin_users',
             'password' => 'required',
             'nik' => 'required',
-            // 'profile_photo' => 'required',
             'profile_background' => 'required',
             'contact_number' => 'required',
             'gender' => 'required',
@@ -56,6 +60,10 @@ class AuthenticationController extends Controller
         ]);
 
         $request["password"] = Hash::make($request->password);
+        $request["last_login_date"] = "";
+        $request["last_login_ip"] = "";
+        $request["is_logged_in"] = "0";
+        $request["is_active"] = "0";
 
         $uploadLogo = 'Tidak ada foto';
         $uploadFoto = 'Tidak ada foto';
@@ -83,7 +91,14 @@ class AuthenticationController extends Controller
     }
 
     public function logout(Request $request) {
+        $request["is_logged_in"] = "0";
+        $request["is_active"] = "0";
+
+        $login = Xin_user::where('user_id', Auth::user()->user_id)->get();
+        $login->first()->fill($request->all())->save();
+
         $request->user()->currentAccessToken()->delete();
+
         return response()->json(["anda sudah logout"]);
     }
 
